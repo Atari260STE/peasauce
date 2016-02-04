@@ -1,6 +1,6 @@
 """
     Peasauce - interactive disassembler
-    Copyright (C) 2012, 2013, 2014 Richard Tew
+    Copyright (C) 2012-2016 Richard Tew
     Licensed using the MIT license.
 """
 
@@ -42,14 +42,6 @@ SYMBOL_TEXT_BASED_RELOCATABLE   =  0x200
 SYMBOL_BSS_BASED_RELOCATABLE    =  0x100
 
 SYMBOL_SEGMENT_MASK             = SYMBOL_DATA_BASED_RELOCATABLE | SYMBOL_TEXT_BASED_RELOCATABLE | SYMBOL_BSS_BASED_RELOCATABLE
-
-
-def is_accepted_file_type(word1):
-    """ Whether the first word of a potentially loaded file is handled by us. """
-    if word1 == MAGIC_WORD:
-        return True
-    return False
-
 
 class PRGFile(object):
     # Executable file header field values.

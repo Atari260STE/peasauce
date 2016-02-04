@@ -1,6 +1,6 @@
 """
     Peasauce - interactive disassembler
-    Copyright (C) 2012, 2013, 2014 Richard Tew
+    Copyright (C) 2012-2016 Richard Tew
     Licensed using the MIT license.
 """
 
@@ -279,7 +279,9 @@ class DisassemblyItemDelegate(QtGui.QStyledItemDelegate):
             if options.state & QtGui.QStyle.State_Selected:
                 ctx.palette.setColor(QtGui.QPalette.Text, options.palette.color(QtGui.QPalette.Active, QtGui.QPalette.HighlightedText))
 
-            textRect = style.subElementRect(QtGui.QStyle.SE_ItemViewItemText, options)
+            # Errors on PySide 2.2.1, seems to do the same thing as the following attr access.
+            #textRect = style.subElementRect(QtGui.QStyle.SE_ItemViewItemText, options, options.widget)
+            textRect = options.rect
             painter.save()
             painter.translate(textRect.topLeft())
             painter.setClipRect(textRect.translated(-textRect.topLeft()))

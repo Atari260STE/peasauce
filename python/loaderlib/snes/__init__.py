@@ -4,29 +4,29 @@
     Licensed using the MIT license.
 """
 
-from . import prgfile
+from . import romfile
 
 
 class System(object):
-    big_endian = True
+    big_endian = False
 
     def get_arch_name(self):
-        return "m68k"
-
-    def load_input_file(self, input_file, file_info, data_types, f_offset=0, f_length=None):
-        return prgfile.load_input_file(input_file, file_info, data_types, f_offset, f_length)
+        return "65c816"
 
     def identify_input_file(self, input_file, file_info, data_types, f_offset=0, f_length=None):
-        return prgfile.identify_input_file(input_file, file_info, data_types, f_offset, f_length)
+        return romfile.identify_input_file(input_file, file_info, data_types, f_offset, f_length)
+
+    def load_input_file(self, input_file, file_info, data_types, f_offset=0, f_length=None):
+        return romfile.load_input_file(input_file, file_info, data_types, f_offset, f_length)
 
     def load_project_data(self, f):
-        return prgfile.load_project_data(f)
+        return romfile.load_project_data(f)
 
     def save_project_data(self, f, data):
-        return prgfile.save_project_data(f, data)
+        romfile.save_project_data(f, data)
 
     def print_summary(self, file_info):
-        prgfile.print_summary(file_info)
+        romfile.print_summary(file_info)
 
     def has_segment_headers(self):
         return False
@@ -38,3 +38,4 @@ class System(object):
         if is_bss_segment:
             return "DS"
         return "DC"
+

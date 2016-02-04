@@ -31,7 +31,7 @@ II_LENGTH = 8
 ## Instruction table II_FLAGS general bits.
 # Flags to indicate special attributes about the given instruction, these overlap the architecture specific flag set.
 IFX_BRANCH    = 1<<29       # Indicates points to code reference to follow when disassembling.  TODO: Better name?
-IFX_ENDSEQ    = 1<<30       # Indicates the end of a sequence of instructions.  
+IFX_ENDSEQ    = 1<<30       # Indicates the end of a sequence of instructions.
 IFX_ENDSEQ_BD = 1<<31       # Indicates the end of a sequence of instructions.  Next instruction is still executed on the way (the branch delay slot).
 
 
@@ -48,7 +48,7 @@ EAMI_DESCRIPTION = 4
 
 def make_operand_mask(mask_string):
     """
-    Convert a binary mask string with variable characters and bits to an '&', and '==' mask. 
+    Convert a binary mask string with variable characters and bits to an '&', and '==' mask.
     This is used to be able to match an instruction word to the instruction table entry.
     """
     and_mask = cmp_mask = 0
@@ -139,7 +139,7 @@ def process_instruction_list(_A, _list):
     An 'instruction list' is the hand editable representation of an architecture.
     This converts it into a tokenised form which can be used to disassemble an opcode stream.
     """
-    
+
     # Pass 1: Each instruction entry with a ".z" size wildcard are expanded to specific entries.
     #         e.g. INSTR.z OP, OP -> INSTR.w OP, OP / INSTR.l OP, OP / ...
     _list_old = _list[:]
@@ -193,7 +193,7 @@ def process_instruction_list(_A, _list):
             for operand_string in operands_bits:
                 spec = _make_specification(operand_string)
                 for var_name, value_name in spec.mask_char_vars.iteritems():
-                    if value_name[0] == "I": # I<word_idx>.<size_char>
+                    if value_name[0] == "I" and value_name[1] != "+": # I<word_idx>.<size_char>
                         size_idx = value_name.find(".")
                         if size_idx > 0:
                             word_idx = int(value_name[1:size_idx])
@@ -233,7 +233,7 @@ def process_instruction_list(_A, _list):
     ls = d.keys()
     ls.sort()
     _list = [ d[k] for k in ls ]
-    
+
     # Pass 3: Validate instruction list.
     for entry in _list:
         name_bits = entry[II_NAME].split(" ", 1)
@@ -254,14 +254,14 @@ def process_instruction_list(_A, _list):
                                 if var_name not in format_string:
                                     print format_string, var_name
                     else:
-                        logger.info("process_instruction_list: unknown operand type %s %s %s", _A.__class__.__name__[4:], name_bits[0], spec.key)
-    
+                        logger.info("process_instruction_list: unknown operand type %s %s %s", _A.__class__.__name__[4:], name_bits[0], (spec.key, dest_var_name))
+
 # TODO: Verification.
 # - Check that all variable bits in the mask are used by the name column.
 # - Check that operand types used in the name column exist.
-# - Check that name column operand type variable names all exist in the operand type spec.    
+# - Check that name column operand type variable names all exist in the operand type spec.
 # - Check contiguity of bits for given character.  e.g.  GOOD = "000vvvv000" BAD = "vvv000vvv"
- 
+
     return _list
 
 
@@ -305,7 +305,6 @@ class ArchInterface(object):
     """ Constant: Method of filtered selection of multiple valid operand types. """
     constant_operand_type_general_label = None
 
-    constant_operand_var_constant_substitutions = None
     constant_table_condition_code_names = None
     constant_table_size_names = None
     constant_table_direction_names = None
@@ -322,7 +321,7 @@ class ArchInterface(object):
     function_get_instruction_string = _unimplemented_function
     """ Function: . """
     function_get_operand_string = _unimplemented_function
-    
+
     """ Function: . """
     def function_disassemble_one_line(self, data, data_idx, data_abs_idx):
         """ Tokenise one disassembled instruction with its operands. """
@@ -345,26 +344,26 @@ class ArchInterface(object):
                 return None, idx0
         M.num_bytes = data_idx - idx0
         return M, data_idx
-    
+
     """ Function: . """
     function_disassemble_as_data = _unimplemented_function
     """ Function: . """
     function_get_default_symbol_name = _unimplemented_function
 
-    # API: Internal use.        
+    # API: Internal use.
     def set_instruction_table(self, table_data):
         self.table_instructions = process_instruction_list(self, table_data)
 
     def set_operand_type_table(self, table_data):
         self.table_operand_types = table_data
-    
+
         idToLabel = {}
         labelToId = {}
         labelToMask = {}
         for i, t in enumerate(table_data):
             idToLabel[i] = t[EAMI_LABEL]
             labelToId[t[EAMI_LABEL]] = i
-            
+
         self.dict_operand_label_to_index = labelToId
         self.dict_operand_index_to_label = idToLabel
 
@@ -374,9 +373,13 @@ class ArchInterface(object):
 
     def get_extra_words_for_size_char(self, size_char):
         raise NotImplementedError("arch-function-undefined")
-        
+
     # ...
-    
+
+    def _signed_value(self, value, bits):
+        unpack_char, pack_char = { 8: ('b', 'B'), 16: ('h', 'H'), 32: ('i', 'I') }[bits]
+        return struct.unpack(self.variable_endian_type + unpack_char, struct.pack(self.variable_endian_type + pack_char, value))[0]
+
     def _get_word(self, data, data_idx):
         return self._get_value(data, data_idx, self.constant_word_size, False)
 
@@ -395,7 +398,7 @@ class ArchInterface(object):
         sfmt = self.variable_endian_type + d[k]
         size = struct.calcsize(sfmt)
         if data_idx + size <= len(data):
-            return struct.unpack(sfmt, data[data_idx:data_idx+size])[0], data_idx+size
+            return struct.unpack(sfmt, data[data_idx:data_idx+size])[0], data_idx + size
         return None, data_idx
 
     def _match_instructions(self, data, data_idx, data_abs_idx):
@@ -450,12 +453,21 @@ class ArchInterface(object):
         def copy_values(mask_char_vars, char_vars):
             d = {}
             for var_name, char_string in mask_char_vars.iteritems():
-                if char_string[0] in ("+", "I"): # Pending read, propagate for resolution when decoding this opcode 
+                if char_string[0] == "I": # Pending read, propagate for resolution when decoding this opcode
                     var_value = char_string
                 else:
-                    var_value = self.constant_operand_var_constant_substitutions.get(char_string, None)
-                    if var_value is None:
+                    sections = char_string.rsplit(".", 1)
+                    if len(sections) == 2:
+                        var_value = char_vars[sections[0]]
+                        var_type = sections[1][0]
+                        var_bits = int(sections[1][1:])
+                        if var_type == "s":
+                            var_value = self._signed_value(var_value, bits=var_bits)
+                        elif var_type != "u":
+                            raise RuntimeException("Bad variable type")
+                    else:
                         var_value = char_vars[char_string]
+
                     if var_name == "cc":
                         var_value = self.constant_table_condition_code_names[var_value]
                     elif var_name == "z":
@@ -466,11 +478,12 @@ class ArchInterface(object):
             return d
 
         var_names = I.specification.mask_char_vars.values()
+        # Extend the base variable list for the instruction itself with any valid candidates from each applicable operand.
         for O in I.opcodes:
             for mask_var_name in O.specification.mask_char_vars.itervalues():
-                if mask_var_name not in var_names and mask_var_name not in self.constant_operand_var_constant_substitutions:
+                if mask_var_name not in var_names:
                     var_names.append(mask_var_name)
-        # Extract the value for each variable from the instruction opcode.
+        # Extract the raw value for each variable from the instruction opcode.
         var_values = _get_var_values(var_names, I.data_words[0], I.table_mask)
         # The instruction size may be required by some operands.  Retrieve it and make it available to the gathering below.
         # TODO: This is currently only really useful for M68K arch.  MIPS gets more complicated with .Y.Z or .f.Y
@@ -482,7 +495,7 @@ class ArchInterface(object):
             if text in self.constant_table_size_names:
                 var_values["z"] = self.constant_table_size_names.index(text)
         # For each element, gather the evaluated values for all of it's variables.
-        I.vars = copy_values(I.specification.mask_char_vars, var_values) 
+        I.vars = copy_values(I.specification.mask_char_vars, var_values)
         for O in I.opcodes:
             O.vars = copy_values(O.specification.mask_char_vars, var_values)
 
@@ -530,12 +543,12 @@ def _extract_mask_bits(mask_string, s):
     """
     A mask string is composed of instruction bits and data.  The bits for a given
     piece of data, are indicated by the same variable character repeated.
-    
+
     e.g. mask_string = "010101010fffffvvvvvggggg01010"
-    
+
     This function takes the mask string, and a character 's', and returns the
     bit mask and shift amount to produce the value for that character variable.
-    
+
     e.g. s = "f"
          instruction_word = 0xF0F0
          -> instruction_word = %1111 1111 0000 0000 1111 1111 0000 0000
@@ -562,7 +575,7 @@ def _extract_masked_value(data_word, mask_string, mask_char):
     """ Extract the value of the mask char in the data word. """
     mask, shift = _extract_mask_bits(mask_string, mask_char)
     return (data_word & mask) >> shift
-    
+
 def _get_var_values(chars, data_word1, mask_string):
     """ Variables generally come from the decoded instruction opcode.  Map their decoded value to their name. """
     var_values = {}
@@ -577,15 +590,18 @@ MAF_ABSOLUTE_ADDRESS = 2
 MAF_CONSTANT_VALUE = 4
 MAF_UNCERTAIN = 8
 MAF_CERTAIN = 16
-    
+
 # ----------------------------------------------------------------------------
-    
+
 def generate_all():
     """
     Return the names of the objects in this file which are imported by the wildcard.
     This is done in this function, so as not to introduce entries into the global dictionary.
     """
-    l = [ "ArchInterface", "_b2n", "_n2b", "_make_specification", "_extract_masked_value", "_get_var_values", "make_operand_mask", "memoize", "process_instruction_list", "signed_hex_string" ]
+    l = [
+        "ArchInterface", "_b2n", "_n2b", "_make_specification", "_extract_masked_value", "_get_var_values",
+        "make_operand_mask", "memoize", "process_instruction_list", "signed_hex_string",
+    ]
     for k in globals().keys():
         if k.startswith("II_") or k.startswith("EAMI") or k.startswith("IFX_") or k.startswith("MAF_"):
             l.append(k)
