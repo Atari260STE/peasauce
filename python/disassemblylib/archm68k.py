@@ -381,9 +381,9 @@ class ArchM68k(ArchInterface):
                 mask = 0x8000
             elif M.table_mask in ("0100100010sssSSS", "0100100011sssSSS"): # MOVEM RL,EA:
                 if M.opcodes[1].vars["mode"] == 4: # -(An)
-                        mask = 0x8000
+			mask = 0x8000
                 else:
-                        mask = 0x0001
+			mask = 0x0001
             else:
                 mask = 0x0001
             dm = am = 0
@@ -575,7 +575,6 @@ operand_type_table = [
     [ "AbsW",       "(xxx).W",              [ _b2n("111"),       _b2n("000"), ],    [ "xxx=+W", ],     "Absolute Short Addressing Mode", ],
     [ "AbsL",       "(xxx).L",              [ _b2n("111"),       _b2n("001"), ],    [ "xxx=+L", ],     "Absolute Long Addressing Mode", ],
     [ "Imm",        "#xxx",                 [ _b2n("111"),       _b2n("100"), ],    [ 0,        ],     "Immediate Data", ],
-    [ "Val",        "xxx",                  [ _b2n("111"),       _b2n("100"), ],    [ 0,        ],     "Value", ],
 ]
 
 
@@ -584,7 +583,6 @@ operand_type_table = [
 # xxx=I<n>.[WL]: Starting with the nth word after the instruction word, use the word or longword at that point.
 
 instruction_table = [
-    [ "101000000000vvvv", "LINEA Val:(xxx=v)",      IF_000, "A-Line", ],
     [ "1100DDD100000SSS", "ABCD DR:(Rn=S),DR:(Rn=D)",       IF_000, "Add Decimal With Extend (register)", ],
     [ "1100DDD100001SSS", "ABCD PreARi:(Rn=S),PreARi:(Rn=D)",      IF_000, "Add Decimal With Extend (memory)", ],
     [ "1101DDD0zzsssSSS", "ADD.z:(z=z) EA:(mode=s&register=S){DR|AR|ARi|ARiPost|PreARi|ARid16|ARiId8|AbsW|AbsL|Imm|PCid16|PCiId8}, DR:(Rn=D)",             IF_000, "Add", ],
