@@ -4,30 +4,39 @@
     Licensed using the MIT license.
 """
 
-M68K_NAME = "m68k"
-MIPS_NAME = "mips"
-_65c816_NAME = "65c816"
+import logging
 
-def get_arch_names():
+logger = logging.getLogger("disassemblylib")
+
+
+def get_processor_ids():
+    import loaderlib
     return [
-        M68K_NAME,
-        MIPS_NAME,
-        _65c816_NAME,
+        loaderlib.constants.PROCESSOR_M680x0,
+        loaderlib.constants.PROCESSOR_MIPS,
+        loaderlib.constants.PROCESSOR_65c816,
     ]
 
-def get_arch(arch_name):
-    if arch_name == M68K_NAME:
-        from archm68k import ArchM68k as ArchClass
-        from archm68k import instruction_table
-        from archm68k import operand_type_table
-    elif arch_name == MIPS_NAME:
-        from archmips import ArchMIPS as ArchClass
-        from archmips import instruction_table
-        from archmips import operand_type_table
-    elif arch_name == _65c816_NAME:
+def get_processor(processor_id):
+    import loaderlib
+    if processor_id == loaderlib.constants.PROCESSOR_65c816:
         from arch65c816 import Arch65c816 as ArchClass
         from arch65c816 import instruction_table
         from arch65c816 import operand_type_table
+    elif processor_id == loaderlib.constants.PROCESSOR_M680x0:
+        from archm68k import ArchM68k as ArchClass
+        from archm68k import instruction_table
+        from archm68k import operand_type_table
+    elif processor_id == loaderlib.constants.PROCESSOR_MIPS:
+        from archmips import ArchMIPS as ArchClass
+        from archmips import instruction_table
+        from archmips import operand_type_table
+    elif processor_id == loaderlib.constants.PROCESSOR_Z80:
+        from archmips import ArchZ80 as ArchClass
+        from archmips import instruction_table
+        from archmips import operand_type_table
+    else:
+        logger.error("get_processor: %s unknown", processor_id)
 
     arch = ArchClass()
     arch.set_operand_type_table(operand_type_table)
